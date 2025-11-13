@@ -25,7 +25,6 @@ export default function HomePage() {
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [draftId, setDraftId] = useState<number | null>(null);
   const [draftParentId, setDraftParentId] = useState<number | null>(null);
-  const [draftParentName, setDraftParentName] = useState<string>("-");
   const [draftName, setDraftName] = useState<string>("");
 
   useEffect(() => {
@@ -33,7 +32,6 @@ export default function HomePage() {
   }, [dispatch]);
 
   useEffect(() => {
-    // set default selection ke top-level pertama + expand all saat data pertama kali masuk
     if (data?.length) {
       if (!selectedId) {
         const topMenus = data.filter((item) => item.parentId === null);
@@ -47,10 +45,16 @@ export default function HomePage() {
     }
   }, [data, selectedId, initialized]);
 
-  // parent map + depth helper
+  // parent map + depth helper (support nested data)
   const parentMap = useMemo(() => {
     const m = new Map<number, number | null>();
-    (data || []).forEach((d) => m.set(d.id, d.parentId ?? null));
+    const walk = (arr: TMenu[], parent: number | null) => {
+      for (const n of arr || []) {
+        m.set(n.id, parent);
+        if (n.children && n.children.length) walk(n.children, n.id);
+      }
+    };
+    if (data && data.length) walk(data, null);
     return m;
   }, [data]);
 
@@ -69,6 +73,49 @@ export default function HomePage() {
     return depth;
   };
 
+  // Nested lookups for node/name by id
+  const findNodeById = (id: number): TMenu | null => {
+    const walk = (arr: TMenu[]): TMenu | null => {
+      for (const n of arr) {
+        if (n.id === id) return n;
+        if (n.children) {
+          const got = walk(n.children);
+          if (got) return got;
+        }
+      }
+      return null;
+    };
+    return walk(data || []);
+  };
+
+  const findNameById = (id: number | null): string => {
+    if (id == null) return "-";
+    const node = findNodeById(id);
+    return node?.name ?? "-";
+  };
+
+  // Derive depth and parent label based on current draft values to avoid stale/missing info
+  const draftDepth = useMemo(() => {
+    if (modalMode === "add") {
+      return draftParentId == null ? 1 : getDepthById(draftParentId) + 1;
+    }
+    if (modalMode === "edit" && draftId != null) {
+      return getDepthById(draftId);
+    }
+    return 1;
+  }, [modalMode, draftParentId, draftId, parentMap]);
+
+  const draftParentLabel = useMemo(() => {
+    if (modalMode === "add") {
+      return findNameById(draftParentId);
+    }
+    if (modalMode === "edit" && draftId != null) {
+      const item = findNodeById(draftId);
+      return findNameById(item?.parentId ?? null);
+    }
+    return "-";
+  }, [modalMode, draftParentId, draftId, data]);
+
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       {loading && (
@@ -81,18 +128,13 @@ export default function HomePage() {
           Error: {error}
         </div>
       )}
-      {/* Breadcrumb */}
       <div className="text-sm text-muted-foreground">/ Menus</div>
-
-      {/* Title */}
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
           <LayoutGrid className="h-6 w-6" />
         </div>
         <h1 className="text-2xl font-bold">Menus</h1>
       </div>
-
-      {/* Top controls */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative inline-flex items-center rounded-lg border bg-card px-3 py-2 text-sm shadow-sm">
           <span className="text-muted-foreground">Menu</span>
@@ -101,82 +143,79 @@ export default function HomePage() {
             system management <ChevronDown className="h-4 w-4" />
           </button>
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          {/* search */}
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              className="w-56 rounded-md border bg-background pl-8 pr-3 py-2 text-sm"
-              placeholder="Search menu..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          <button
-            onClick={() => setExpandAllTick((v) => v + 1)}
-            className="rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-foreground ring-1 ring-border hover:bg-accent"
-          >
-            Expand All
-          </button>
-          <button
-            onClick={() => setCollapseAllTick((v) => v + 1)}
-            className="rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-foreground ring-1 ring-border hover:bg-accent"
-          >
-            Collapse All
-          </button>
-        </div>
+        {/* removed top-right search and buttons; moved below the tree */}
       </div>
 
-      {/* Main content: left tree + right form panel */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left: tree */}
-        <section className="rounded-lg border bg-card p-4 shadow-sm lg:col-span-7">
+        {/* Left column container: controls outside the tree card */}
+        <div className="lg:col-span-7">
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
             system management
           </h2>
-          <MenuTree
-            data={data || []}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            expandAllSignal={expandAllTick}
-            collapseAllSignal={collapseAllTick}
-            searchQuery={query}
-            onAdd={(parentId) => {
-              const pName =
-                parentId != null
-                  ? data?.find((m) => m.id === parentId)?.name ?? "-"
-                  : "-";
-              setModalMode("add");
-              setDraftId(null);
-              setDraftParentId(parentId ?? null);
-              setDraftParentName(pName);
-              setDraftName("");
-              setIsModalOpen(true);
-            }}
-            onRename={(id, currentName) => {
-              const item = data?.find((m) => m.id === id) || null;
-              const pName =
-                item?.parentId != null
-                  ? data?.find((m) => m.id === item.parentId)?.name ?? "-"
-                  : "-";
-              setModalMode("edit");
-              setDraftId(id);
-              setDraftParentId(item?.parentId ?? null);
-              setDraftParentName(pName);
-              setDraftName(currentName ?? item?.name ?? "");
-              setIsModalOpen(true);
-            }}
-            onDelete={(id) => dispatch(deleteMenu(id))}
-          />
-        </section>
-
-        {/* Right: reserved form panel */}
-        <section className="rounded-lg border bg-card p-4 shadow-sm lg:col-span-5">
-          {!isModalOpen ? (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              Select Add or Edit from the tree to manage menu data
+          {/* Controls row outside the bordered tree card */}
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setExpandAllTick((v) => v + 1)}
+                className="rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-foreground ring-1 ring-border hover:bg-accent"
+              >
+                Expand All
+              </button>
+              <button
+                onClick={() => setCollapseAllTick((v) => v + 1)}
+                className="rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-foreground ring-1 ring-border hover:bg-accent"
+              >
+                Collapse All
+              </button>
             </div>
-          ) : (
+
+            <div className="relative ml-auto min-w-40 flex-1 sm:flex-none sm:w-64">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                className="w-full rounded-md border bg-background pl-8 pr-3 py-2 text-sm"
+                placeholder="Search menu..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Tree card only */}
+          <section className="rounded-lg border bg-card p-4 shadow-sm">
+            <MenuTree
+              data={data || []}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              expandAllSignal={expandAllTick}
+              collapseAllSignal={collapseAllTick}
+              searchQuery={query}
+              onAdd={(parentId) => {
+                setModalMode("add");
+                setDraftId(null);
+                setDraftParentId(parentId ?? null);
+                setDraftName("");
+                setIsModalOpen(true);
+              }}
+              onRename={(id, currentName) => {
+                const item = findNodeById(id);
+                setModalMode("edit");
+                setDraftId(id);
+                setDraftParentId(item?.parentId ?? null);
+                setDraftName(currentName ?? item?.name ?? "");
+                setIsModalOpen(true);
+              }}
+              onDelete={(id) => dispatch(deleteMenu(id))}
+            />
+          </section>
+        </div>
+
+        {/* Right panel: blank when idle; styled form when active */}
+        <section
+          className={`${
+            isModalOpen ? "rounded-lg border bg-card p-4 shadow-sm" : ""
+          } lg:col-span-5`}
+        >
+          {isModalOpen ? (
             <>
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-semibold">
@@ -208,15 +247,7 @@ export default function HomePage() {
                   </label>
                   <input
                     className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                    value={
-                      modalMode === "add"
-                        ? draftParentId == null
-                          ? 1
-                          : getDepthById(draftParentId) + 1
-                        : draftId != null
-                        ? getDepthById(draftId)
-                        : 1
-                    }
+                    value={draftDepth}
                     readOnly
                   />
                 </div>
@@ -226,7 +257,7 @@ export default function HomePage() {
                   </label>
                   <input
                     className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                    value={draftParentName}
+                    value={draftParentLabel}
                     readOnly
                   />
                 </div>
@@ -270,6 +301,9 @@ export default function HomePage() {
                 </div>
               </div>
             </>
+          ) : (
+            // keep the column width without any visible box
+            <div className="h-full" />
           )}
         </section>
       </div>

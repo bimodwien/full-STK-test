@@ -50,7 +50,6 @@ export function buildMenuTree(data: TMenu[]): TMenuNode[] {
   return hasNested ? fromNested(data) : fromFlat(data);
 }
 
-// Filter tree by name, keeping ancestors of matches
 export function filterMenuTree(nodes: TMenuNode[], query: string): TMenuNode[] {
   const q = query.trim().toLowerCase();
   if (!q) return nodes;

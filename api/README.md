@@ -1,98 +1,266 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+## API — Menu Service (NestJS + Prisma)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+This service powers the menu management used by the web app. It exposes CRUD endpoints for a hierarchical Menu (parent/child) built on NestJS and Prisma (PostgreSQL).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Swagger docs are available at: http://localhost:8001/api/docs
 
-## Description
+## Stack
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- NestJS 11 (REST, Validation, CORS)
+- Prisma ORM (PostgreSQL)
+- Swagger (OpenAPI)
 
-## Project setup
+## Requirements
 
-```bash
-$ npm install
+- Node.js 18+
+- A PostgreSQL database
+
+## Environment variables
+
+Create an `.env` in the `api` directory with at least:
+
+```
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DBNAME?schema=public"
+# optional
+PORT=8001
 ```
 
-## Compile and run the project
+## Install & run
 
 ```bash
-# development
-$ npm run start
+# install deps
+npm install
 
-# watch mode
-$ npm run start:dev
+# generate prisma client
+npx prisma generate
 
-# production mode
-$ npm run start:prod
+# apply schema (creates tables)
+npx prisma migrate dev --name init
+
+# dev server
+npm run start:dev
+
+# open swagger
+# http://localhost:${PORT:-8001}/api/docs
 ```
 
-## Run tests
+## Data model
+
+Prisma model (`prisma/schema.prisma`):
+
+```
+model Menu {
+  id        Int      @id @default(autoincrement())
+  name      String
+  parentId  Int?
+  parent    Menu?    @relation("MenuChildren", fields: [parentId], references: [id])
+  children  Menu[]   @relation("MenuChildren")
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+## Endpoints
+
+Base URL: `http://localhost:8001`
+
+- GET `/menu`
+  - Returns the full nested menu tree as an array of root nodes.
+
+- GET `/menu/:id`
+  - Returns a single menu item with its immediate children.
+
+- POST `/menu`
+  - Body: `{ name: string; parentId?: number | null }`
+  - Notes: `parentId` of `0` or `null` will create a root item. If `parentId` is provided but not found, returns `404 Parent menu not found`.
+
+- PUT `/menu/:id`
+  - Body: `{ name?: string; parentId?: number | null }`
+  - Partially updates the item.
+
+- DELETE `/menu/:id`
+  - Removes the menu. Immediate children are deleted first, then the parent.
+
+## Examples
+
+All requests use JSON. Replace host/port with your environment.
+
+### Create (POST /menu)
+
+Request
+
+```
+POST /menu
+Content-Type: application/json
+
+{
+  "name": "User Management",
+  "parentId": null
+}
+```
+
+Response 201
+
+```
+{
+  "id": 1,
+  "name": "User Management",
+  "parentId": null,
+  "order": 0,
+  "createdAt": "2025-11-13T10:00:00.000Z",
+  "updatedAt": "2025-11-13T10:00:00.000Z",
+  "children": [],
+  "parent": null
+}
+```
+
+Create child under id=1
+
+```
+POST /menu
+{
+  "name": "Roles",
+  "parentId": 1
+}
+```
+
+### List (GET /menu)
+
+Response 200
+
+```
+[
+  {
+    "id": 1,
+    "name": "User Management",
+    "parentId": null,
+    "order": 0,
+    "createdAt": "2025-11-13T10:00:00.000Z",
+    "updatedAt": "2025-11-13T10:00:00.000Z",
+    "children": [
+      {
+        "id": 2,
+        "name": "Roles",
+        "parentId": 1,
+        "order": 0,
+        "createdAt": "2025-11-13T10:01:00.000Z",
+        "updatedAt": "2025-11-13T10:01:00.000Z",
+        "children": []
+      }
+    ]
+  }
+]
+```
+
+### Detail (GET /menu/:id)
+
+```
+GET /menu/1
+```
+
+Response 200
+
+```
+{
+  "id": 1,
+  "name": "User Management",
+  "parentId": null,
+  "order": 0,
+  "createdAt": "2025-11-13T10:00:00.000Z",
+  "updatedAt": "2025-11-13T10:00:00.000Z",
+  "children": [
+    {
+      "id": 2,
+      "name": "Roles",
+      "parentId": 1,
+      "order": 0,
+      "createdAt": "2025-11-13T10:01:00.000Z",
+      "updatedAt": "2025-11-13T10:01:00.000Z"
+    }
+  ]
+}
+```
+
+### Update (PUT /menu/:id)
+
+Request
+
+```
+PUT /menu/2
+{
+  "name": "Role Management"
+}
+```
+
+Response 200
+
+```
+{
+  "id": 2,
+  "name": "Role Management",
+  "parentId": 1,
+  "order": 0,
+  "createdAt": "2025-11-13T10:01:00.000Z",
+  "updatedAt": "2025-11-13T10:05:00.000Z"
+}
+```
+
+### Delete (DELETE /menu/:id)
+
+```
+DELETE /menu/2
+```
+
+Response 200
+
+```
+{
+  "id": 2,
+  "name": "Role Management",
+  "parentId": 1,
+  "order": 0,
+  "createdAt": "2025-11-13T10:01:00.000Z",
+  "updatedAt": "2025-11-13T10:05:00.000Z"
+}
+```
+
+### DTOs
+
+- CreateMenuDto
+  - `name: string` (required)
+  - `parentId?: number | null` (optional)
+
+- UpdateMenuDto extends CreateMenuDto (all fields optional)
+
+## Behavior and conventions
+
+- CORS is enabled by default.
+- ValidationPipe is active (whitelist=true). Unknown payload fields are stripped.
+- Swagger is mounted at `/api/docs`.
+- The web app consumes this API via `NEXT_PUBLIC_API_URL + "/menu"`.
+
+## Scripts
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run start        # start (prod)
+npm run start:dev    # start in watch mode
+npm run build        # compile to dist
+npm run lint         # eslint --fix
+npm run test         # unit tests
+npm run test:e2e     # e2e tests
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Prisma helpers
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npx prisma generate              # generate client
+npx prisma migrate dev --name x  # create/apply a migration
+npx prisma studio                # open Prisma Studio
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Troubleshooting
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Ensure `DATABASE_URL` is reachable.
+- If schema changes, re-run `npx prisma generate` and `npx prisma migrate dev`.
+- Swagger not loading? Verify the server runs on the configured `PORT` and check CORS/network settings.

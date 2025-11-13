@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import StoreProvider from "@/components/providers/store.provider";
-import Sidebar from "@/components/Sidebar";
+import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -17,12 +17,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <StoreProvider>
-          <div className="flex min-h-screen bg-white">
-            <Sidebar />
-            <main className="flex-1 bg-background text-foreground">
-              {children}
-            </main>
-          </div>
+          <AppShell>{children}</AppShell>
         </StoreProvider>
       </body>
     </html>
