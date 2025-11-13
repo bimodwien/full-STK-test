@@ -45,6 +45,9 @@ npm run dev
 
 ### Controls
 
+- Header bar:
+  - Root selector dropdown: choose "All Menus" or filter by a specific top-level parent.
+  - Add root menu button: opens the right panel in Add mode with parent set to null.
 - Above the tree (outside the card):
   - Expand All / Collapse All
   - Search (filters nodes but keeps ancestors visible)
@@ -65,7 +68,9 @@ npm run dev
   - Name: input for the new menu name
 - Save creates the menu under the selected parent and refreshes the tree.
 
-Note: Adding a brand new root from the UI isn’t included yet. We can add a dedicated “Add root menu” control if needed.
+Add a root menu:
+
+- Click the "Add root menu" button in the header bar. The right panel opens with Parent = null (root) and Depth = 1.
 
 ### Edit
 
@@ -86,3 +91,4 @@ Note: Adding a brand new root from the UI isn’t included yet. We can add a ded
 
 - Depth and Parent Data are derived live from the current tree to avoid stale values.
 - The right panel only has borders/background when active; otherwise it stays visually blank to match the mock.
+- The page height follows the tree content (no forced 100vh lock) so long lists can be scrolled naturally.

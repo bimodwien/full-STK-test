@@ -4,8 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { fetchMenu } from "@/lib/redux/middleware/menu.mdlwr";
 import { TMenu } from "@/models/menu.model";
-import { LayoutGrid, ChevronDown, Search } from "lucide-react";
-import MenuTree from "@/components/MenuTree";
+import { LayoutGrid } from "lucide-react";
+import MenuTree from "@/components/menu-ui/MenuTree";
+import RootSelector from "@/components/menu-ui/RootSelector";
+import ControlsBar from "@/components/menu-ui/ControlsBar";
+import MenuFormPanel from "@/components/menu-ui/MenuFormPanel";
 import {
   addMenu,
   updateMenu,
@@ -20,6 +23,7 @@ export default function HomePage() {
   const [collapseAllTick, setCollapseAllTick] = useState(0);
   const [initialized, setInitialized] = useState(false);
   const [query, setQuery] = useState("");
+  const [selectedRootId, setSelectedRootId] = useState<number | "all">("all");
   // modal state for add/update (slide-over on the right)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
@@ -116,6 +120,23 @@ export default function HomePage() {
     return "-";
   }, [modalMode, draftParentId, draftId, data]);
 
+  // Top-level roots list and filtered data by selected root
+  const topRoots = useMemo(
+    () => (data || []).filter((m) => m.parentId == null),
+    [data]
+  );
+  const currentRootLabel = useMemo(() => {
+    if (selectedRootId === "all") return "All Menus";
+    const r = topRoots.find((r) => r.id === selectedRootId);
+    return r?.name ?? "All Menus";
+  }, [selectedRootId, topRoots]);
+
+  const filteredData = useMemo(() => {
+    if (selectedRootId === "all") return data || [];
+    const node = findNodeById(selectedRootId);
+    return node ? [node] : [];
+  }, [data, selectedRootId]);
+
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       {loading && (
@@ -135,55 +156,41 @@ export default function HomePage() {
         </div>
         <h1 className="text-2xl font-bold">Menus</h1>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative inline-flex items-center rounded-lg border bg-card px-3 py-2 text-sm shadow-sm">
-          <span className="text-muted-foreground">Menu</span>
-          <span className="mx-2 h-4 w-px bg-border" />
-          <button className="inline-flex items-center gap-1 font-medium">
-            system management <ChevronDown className="h-4 w-4" />
-          </button>
-        </div>
-        {/* removed top-right search and buttons; moved below the tree */}
-      </div>
+      <RootSelector
+        currentLabel={currentRootLabel}
+        topRoots={topRoots}
+        selectedRootId={selectedRootId}
+        onSelectRoot={(id) => {
+          setSelectedRootId(id);
+          setCollapseAllTick((v) => v + 1);
+        }}
+        onAddRoot={() => {
+          setModalMode("add");
+          setDraftId(null);
+          setDraftParentId(null);
+          setDraftName("");
+          setIsModalOpen(true);
+        }}
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left column container: controls outside the tree card */}
         <div className="lg:col-span-7">
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
-            system management
+            {currentRootLabel}
           </h2>
           {/* Controls row outside the bordered tree card */}
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setExpandAllTick((v) => v + 1)}
-                className="rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-foreground ring-1 ring-border hover:bg-accent"
-              >
-                Expand All
-              </button>
-              <button
-                onClick={() => setCollapseAllTick((v) => v + 1)}
-                className="rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-foreground ring-1 ring-border hover:bg-accent"
-              >
-                Collapse All
-              </button>
-            </div>
-
-            <div className="relative ml-auto min-w-40 flex-1 sm:flex-none sm:w-64">
-              <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                className="w-full rounded-md border bg-background pl-8 pr-3 py-2 text-sm"
-                placeholder="Search menu..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
-          </div>
+          <ControlsBar
+            query={query}
+            onQueryChange={setQuery}
+            onExpandAll={() => setExpandAllTick((v) => v + 1)}
+            onCollapseAll={() => setCollapseAllTick((v) => v + 1)}
+          />
 
           {/* Tree card only */}
           <section className="rounded-lg border bg-card p-4 shadow-sm">
             <MenuTree
-              data={data || []}
+              data={filteredData}
               selectedId={selectedId}
               onSelect={setSelectedId}
               expandAllSignal={expandAllTick}
@@ -215,96 +222,26 @@ export default function HomePage() {
             isModalOpen ? "rounded-lg border bg-card p-4 shadow-sm" : ""
           } lg:col-span-5`}
         >
-          {isModalOpen ? (
-            <>
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold">
-                  {modalMode === "add" ? "Add Menu" : "Edit Menu"}
-                </h3>
-                <button
-                  className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-accent"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Close
-                </button>
-              </div>
-              <div className="space-y-4">
-                {modalMode === "edit" && (
-                  <div>
-                    <label className="mb-1 block text-xs text-muted-foreground">
-                      Menu ID
-                    </label>
-                    <input
-                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                      value={draftId ?? "-"}
-                      readOnly
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className="mb-1 block text-xs text-muted-foreground">
-                    Depth
-                  </label>
-                  <input
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                    value={draftDepth}
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs text-muted-foreground">
-                    Parent Data
-                  </label>
-                  <input
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                    value={draftParentLabel}
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs text-muted-foreground">
-                    Name
-                  </label>
-                  <input
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                    value={draftName}
-                    onChange={(e) => setDraftName(e.target.value)}
-                    placeholder="Menu name"
-                    autoFocus
-                  />
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <button
-                    className="inline-flex flex-1 items-center justify-center rounded-md bg-[#0A4DA8] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-110 disabled:opacity-50"
-                    disabled={!draftName.trim()}
-                    onClick={() => {
-                      const name = draftName.trim();
-                      if (!name) return;
-                      if (modalMode === "add") {
-                        dispatch(
-                          addMenu({ name, parentId: draftParentId ?? null })
-                        );
-                      } else if (modalMode === "edit" && draftId != null) {
-                        dispatch(updateMenu({ id: draftId, name }));
-                      }
-                      setIsModalOpen(false);
-                    }}
-                  >
-                    Save
-                  </button>
-                  <button
-                    className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold ring-1 ring-border hover:bg-accent"
-                    onClick={() => setIsModalOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            // keep the column width without any visible box
-            <div className="h-full" />
-          )}
+          <MenuFormPanel
+            isOpen={isModalOpen}
+            mode={modalMode}
+            draftId={draftId}
+            draftName={draftName}
+            draftDepth={draftDepth}
+            draftParentLabel={draftParentLabel}
+            onDraftNameChange={setDraftName}
+            onSave={() => {
+              const name = draftName.trim();
+              if (!name) return;
+              if (modalMode === "add") {
+                dispatch(addMenu({ name, parentId: draftParentId ?? null }));
+              } else if (modalMode === "edit" && draftId != null) {
+                dispatch(updateMenu({ id: draftId, name }));
+              }
+              setIsModalOpen(false);
+            }}
+            onCancel={() => setIsModalOpen(false)}
+          />
         </section>
       </div>
     </div>

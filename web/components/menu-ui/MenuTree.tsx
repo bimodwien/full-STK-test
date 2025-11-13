@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, Plus } from "lucide-react";
-import { TMenuNode as Node, MenuTreeProps } from "@/models/menu.model";
+import { TMenuNode as Node } from "@/models/menu.model";
+import { MenuTreeProps } from "@/models/ui.model";
 import { buildMenuTree, filterMenuTree } from "@/lib/menu-tree";
 
 const INDENT = 18; // px

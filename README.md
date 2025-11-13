@@ -69,7 +69,8 @@ Web UI usage and behavior: see `web/README.md`.
 
 - Desktop: two columns (tree on left, form panel on right)
 - Mobile: off-canvas sidebar for the tree; form stacks below
-- Controls: Expand/Collapse, Search above the tree
+- Header bar: Root selector dropdown (All or specific root) + "Add root menu" button
+- Controls: Expand/Collapse, Search above the tree (outside card)
 - Row actions via a blue plus (hover on desktop, tap-to-reveal on mobile)
 - Right panel shows Add/Edit form with live Depth and Parent Data
 
