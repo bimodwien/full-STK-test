@@ -43,6 +43,15 @@ npm run dev
   - Right: Inline form panel for Add/Edit (blank when idle)
 - Mobile: Sidebar (tree) becomes off-canvas with a burger toggle; the form stacks below content.
 
+Key components
+
+- `components/menu-ui/RootSelector.tsx` — root filter and Add root
+- `components/menu-ui/ControlsBar.tsx` — expand/collapse + search
+- `components/menu-ui/MenuFormPanel.tsx` — right-side form panel
+- `components/menu-ui/MenuTree.tsx` — tree with plus dropdown actions
+- `components/AppShell.tsx` and `components/Sidebar.tsx` — layout + navigation
+- `models/ui.model.ts` — centralized UI prop types for the components above
+
 ### Controls
 
 - Header bar:
@@ -92,3 +101,14 @@ Add a root menu:
 - Depth and Parent Data are derived live from the current tree to avoid stale values.
 - The right panel only has borders/background when active; otherwise it stays visually blank to match the mock.
 - The page height follows the tree content (no forced 100vh lock) so long lists can be scrolled naturally.
+
+## State & data
+
+- Redux Toolkit manages API calls and caching.
+- Search preserves ancestors so context remains visible when filtering.
+
+## Troubleshooting
+
+- Right panel tidak muncul saat Add/Edit: pastikan field Name diisi, lalu klik Save.
+- Plus di mobile: tap sekali untuk menampilkan, tap lagi untuk menyembunyikan.
+- Tidak ada data? Pastikan API berjalan dan `NEXT_PUBLIC_API_URL` mengarah ke host API yang benar (mis. `http://localhost:8001`).

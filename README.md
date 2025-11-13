@@ -11,6 +11,11 @@ Folders:
 
 Clone the repo, then set up the API and Web in parallel.
 
+Prereqs
+
+- Node.js 18+ and npm 9+
+- PostgreSQL 13+ (local or Docker)
+
 ### 1) API setup (NestJS)
 
 In `api/`:
@@ -73,6 +78,15 @@ Web UI usage and behavior: see `web/README.md`.
 - Controls: Expand/Collapse, Search above the tree (outside card)
 - Row actions via a blue plus (hover on desktop, tap-to-reveal on mobile)
 - Right panel shows Add/Edit form with live Depth and Parent Data
+
+Key files
+
+- `web/components/menu-ui/RootSelector.tsx` — root filter and Add root
+- `web/components/menu-ui/ControlsBar.tsx` — expand/collapse + search
+- `web/components/menu-ui/MenuFormPanel.tsx` — right-side form panel
+- `web/components/menu-ui/MenuTree.tsx` — tree with plus dropdown actions
+- `web/components/AppShell.tsx` and `web/components/Sidebar.tsx` — layout + navigation
+- `web/models/ui.model.ts` — centralized UI prop types
 
 ## Environment variables
 

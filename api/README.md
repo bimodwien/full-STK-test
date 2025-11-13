@@ -15,6 +15,16 @@ Swagger docs are available at: http://localhost:8001/api/docs
 - Node.js 18+
 - A PostgreSQL database
 
+Optional (for local Postgres via Docker)
+
+```bash
+# Single container
+docker run --name stk-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=stk -p 5432:5432 -d postgres:16
+
+# Example DATABASE_URL
+# postgresql://postgres:postgres@localhost:5432/stk?schema=public
+```
+
 ## Environment variables
 
 Create an `.env` in the `api` directory with at least:
@@ -24,6 +34,8 @@ DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DBNAME?schema=public"
 # optional
 PORT=8001
 ```
+
+The web app consumes this API using `NEXT_PUBLIC_API_URL` (e.g., `http://localhost:8001`).
 
 ## Install & run
 
@@ -81,6 +93,12 @@ Base URL: `http://localhost:8001`
 
 - DELETE `/menu/:id`
   - Removes the menu. Immediate children are deleted first, then the parent.
+
+Notes
+
+- CORS is enabled.
+- ValidationPipe is enabled with whitelist.
+- Swagger UI: `http://localhost:${PORT:-8001}/api/docs`.
 
 ## Examples
 
@@ -264,3 +282,4 @@ npx prisma studio                # open Prisma Studio
 - Ensure `DATABASE_URL` is reachable.
 - If schema changes, re-run `npx prisma generate` and `npx prisma migrate dev`.
 - Swagger not loading? Verify the server runs on the configured `PORT` and check CORS/network settings.
+- Using Docker? Ensure the container is running and the port (default 5432) is free.
