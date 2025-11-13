@@ -13,11 +13,20 @@ This is the front-end for managing hierarchical menus. It connects to the API se
 
 Create `.env.local` in the `web` directory with:
 
-```
+````
 NEXT_PUBLIC_API_URL=http://localhost:8001
-```
+
+Or copy the example file:
+
+```bash
+cp .env.example .env.local
+````
+
+````
 
 The UI calls `${NEXT_PUBLIC_API_URL}/menu` for all operations and expects the API to be running.
+
+Backend docs: see `../api/README.md`. Swagger UI lives at `${NEXT_PUBLIC_API_URL}/api/docs`.
 
 ## Develop
 
@@ -25,7 +34,7 @@ The UI calls `${NEXT_PUBLIC_API_URL}/menu` for all operations and expects the AP
 npm install
 npm run dev
 # open http://localhost:3000
-```
+````
 
 ## UI overview
 
