@@ -30,8 +30,10 @@ export const addMenu =
     try {
       const res = await axios.post(url, payload);
       dispatch(addMenuLocal(res.data));
+      return true;
     } catch (err: any) {
       dispatch(setError(err.message));
+      return false;
     }
   };
 
@@ -41,8 +43,10 @@ export const updateMenu =
     try {
       const res = await axios.put(`${url}/${payload.id}`, payload);
       dispatch(updateMenuLocal(res.data));
+      return true;
     } catch (err: any) {
       dispatch(setError(err.message));
+      return false;
     }
   };
 
@@ -50,7 +54,9 @@ export const deleteMenu = (id: number) => async (dispatch: AppDispatch) => {
   try {
     await axios.delete(`${url}/${id}`);
     dispatch(deleteMenuLocal(id));
+    return true;
   } catch (err: any) {
     dispatch(setError(err.message));
+    return false;
   }
 };

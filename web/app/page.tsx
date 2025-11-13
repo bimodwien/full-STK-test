@@ -9,6 +9,7 @@ import MenuTree from "@/components/menu-ui/MenuTree";
 import RootSelector from "@/components/menu-ui/RootSelector";
 import ControlsBar from "@/components/menu-ui/ControlsBar";
 import MenuFormPanel from "@/components/menu-ui/MenuFormPanel";
+import { toast } from "sonner";
 import {
   addMenu,
   updateMenu,
@@ -211,7 +212,15 @@ export default function HomePage() {
                 setDraftName(currentName ?? item?.name ?? "");
                 setIsModalOpen(true);
               }}
-              onDelete={(id) => dispatch(deleteMenu(id))}
+              onDelete={(id) => {
+                void (async () => {
+                  const ok = (await dispatch(
+                    deleteMenu(id)
+                  )) as unknown as boolean;
+                  if (ok) toast.success("Menu deleted");
+                  else toast.error("Failed to delete menu");
+                })();
+              }}
             />
           </section>
         </div>
@@ -233,12 +242,22 @@ export default function HomePage() {
             onSave={() => {
               const name = draftName.trim();
               if (!name) return;
-              if (modalMode === "add") {
-                dispatch(addMenu({ name, parentId: draftParentId ?? null }));
-              } else if (modalMode === "edit" && draftId != null) {
-                dispatch(updateMenu({ id: draftId, name }));
-              }
-              setIsModalOpen(false);
+              void (async () => {
+                if (modalMode === "add") {
+                  const ok = (await dispatch(
+                    addMenu({ name, parentId: draftParentId ?? null })
+                  )) as unknown as boolean;
+                  if (ok) toast.success("Menu created");
+                  else toast.error("Failed to create menu");
+                } else if (modalMode === "edit" && draftId != null) {
+                  const ok = (await dispatch(
+                    updateMenu({ id: draftId, name })
+                  )) as unknown as boolean;
+                  if (ok) toast.success("Menu updated");
+                  else toast.error("Failed to update menu");
+                }
+                setIsModalOpen(false);
+              })();
             }}
             onCancel={() => setIsModalOpen(false)}
           />

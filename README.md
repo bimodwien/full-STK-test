@@ -78,6 +78,7 @@ Web UI usage and behavior: see `web/README.md`.
 - Controls: Expand/Collapse, Search above the tree (outside card)
 - Row actions via a blue plus (hover on desktop, tap-to-reveal on mobile)
 - Right panel shows Add/Edit form with live Depth and Parent Data
+- Notifications: success toasts on Add/Edit/Delete (sonner); Delete uses a confirmation Alert Dialog (shadcn) instead of the browser alert
 
 Key files
 
@@ -110,6 +111,31 @@ In `web/`:
 npm run dev
 npm run build
 npm run lint
+npm run start   # start production server after build
+```
+
+## Production
+
+Run both apps in production mode.
+
+API (NestJS):
+
+```bash
+cd api
+npm install
+npm run build
+npm run start:prod
+# Swagger: http://localhost:8001/api/docs
+```
+
+Web (Next.js):
+
+```bash
+cd web
+npm install
+npm run build
+npm run start
+# App: http://localhost:3000
 ```
 
 ## Notes

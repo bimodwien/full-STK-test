@@ -52,6 +52,11 @@ Key components
 - `components/AppShell.tsx` and `components/Sidebar.tsx` — layout + navigation
 - `models/ui.model.ts` — centralized UI prop types for the components above
 
+## Notifications
+
+- Add/Edit/Delete displays success/failure toast using `sonner` (shadcn kit)
+- Delete action uses shadcn's `AlertDialog` (not `window.confirm`)
+
 ### Controls
 
 - Header bar:
@@ -112,3 +117,21 @@ Add a root menu:
 - Right panel tidak muncul saat Add/Edit: pastikan field Name diisi, lalu klik Save.
 - Plus di mobile: tap sekali untuk menampilkan, tap lagi untuk menyembunyikan.
 - Tidak ada data? Pastikan API berjalan dan `NEXT_PUBLIC_API_URL` mengarah ke host API yang benar (mis. `http://localhost:8001`).
+
+## Build & Production
+
+Development:
+
+```bash
+npm run dev
+```
+
+Production build and start:
+
+```bash
+npm run build
+npm run start
+# App runs on http://localhost:3000 by default
+```
+
+Pastikan variabel env (`NEXT_PUBLIC_API_URL`) sudah di-set untuk lingkungan production Anda.

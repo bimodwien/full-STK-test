@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import { Menu as MenuIcon } from "lucide-react";
+import { Toaster } from "@/components/ui/sonner";
 
 type Props = {
   children: React.ReactNode;
@@ -29,6 +30,8 @@ export default function AppShell({ children }: Props) {
           </button>
         </div>
         {children}
+        {/* Global toaster for notifications */}
+        <Toaster position="top-right" richColors closeButton />
       </main>
     </div>
   );

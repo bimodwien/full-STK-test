@@ -56,6 +56,14 @@ npm run start:dev
 # http://localhost:${PORT:-8001}/api/docs
 ```
 
+## Build & production
+
+```bash
+npm run build
+npm run start:prod
+# Server runs on PORT (default 8001). Swagger available at /api/docs
+```
+
 ## Data model
 
 Prisma model (`prisma/schema.prisma`):

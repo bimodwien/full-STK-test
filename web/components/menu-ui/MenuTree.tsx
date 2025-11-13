@@ -5,6 +5,16 @@ import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { TMenuNode as Node } from "@/models/menu.model";
 import { MenuTreeProps } from "@/models/ui.model";
 import { buildMenuTree, filterMenuTree } from "@/lib/menu-tree";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const INDENT = 18; // px
 
@@ -24,6 +34,8 @@ const MenuTree: React.FC<MenuTreeProps> = ({
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [actionMenuFor, setActionMenuFor] = useState<number | null>(null);
   const [showActionsFor, setShowActionsFor] = useState<number | null>(null); // for mobile tap-to-reveal
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteName, setDeleteName] = useState<string>("");
 
   function toggle(id: number) {
     setExpanded((prev) => {
@@ -174,9 +186,8 @@ const MenuTree: React.FC<MenuTreeProps> = ({
                       className="block w-full rounded px-2 py-1.5 text-left text-red-600 hover:bg-red-50"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (window.confirm("Delete this menu?")) {
-                          onDelete(node.id);
-                        }
+                        setDeleteId(node.id);
+                        setDeleteName(node.name);
                         setActionMenuFor(null);
                       }}
                     >
@@ -208,11 +219,43 @@ const MenuTree: React.FC<MenuTreeProps> = ({
   };
 
   return (
-    <ul>
-      {tree.map((node) => (
-        <Row key={node.id} node={node} depth={0} />
-      ))}
-    </ul>
+    <>
+      <ul>
+        {tree.map((node) => (
+          <Row key={node.id} node={node} depth={0} />
+        ))}
+      </ul>
+
+      {/* Confirm delete dialog */}
+      <AlertDialog
+        open={deleteId != null}
+        onOpenChange={(v) => !v && setDeleteId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete menu</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{deleteName}" and its children. This
+              action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => {
+                if (deleteId != null && onDelete) {
+                  onDelete(deleteId);
+                }
+                setDeleteId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
